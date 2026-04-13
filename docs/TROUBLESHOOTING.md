@@ -157,7 +157,7 @@ listen YOUR_TAILSCALE_IP:8443 ssl;
 
 Alternatively, get a real certificate:
 ```bash
-sudo tailscale cert your-machine.tail8a8444.ts.net
+sudo tailscale cert your-machine.YOUR_TAILNET.ts.net
 ```
 (Requires Tailscale plan that supports HTTPS certificates)
 
