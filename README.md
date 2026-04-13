@@ -1,4 +1,4 @@
-# DGX Spark vLLM Uncensored Guide
+# DGX Spark vLLM Gemma-4-26B Uncensored Guide
 
 > High-performance LLM inference on NVIDIA DGX Spark using vLLM with uncensored Gemma-4 models.
 
@@ -23,7 +23,7 @@ This repository documents how to run **fast, uncensored large language models** 
 
 | Setup | Model | Avg Speed | Memory | Notes |
 |-------|-------|-----------|---------|-------|
-| **This Setup** ✅ | Gemma-4-26B Uncensored NVFP4 | **45.11 tok/s** | ~16.3 GB | Fastest, uncensored |
+| **This Setup** ✅ | Gemma-4-26B Uncensored NVFP4 | **45.26 tok/s** | ~16.3 GB | Fastest, uncensored |
 | vLLM (LilaRest) | Gemma-4-31B NVFP4 | 9.16 tok/s | ~18.5 GB | Too slow on DGX Spark |
 | Ollama | gemma4:31b | 8.05 tok/s | ~19 GB | Baseline |
 
@@ -34,13 +34,13 @@ This repository documents how to run **fast, uncensored large language models** 
 Tested on DGX Spark (GB10) with 128GB unified memory, `max_tokens=200`, 5 diverse prompts, warmup excluded:
 
 ```
-Test 1:  200 tokens in 4.43s → 45.16 tok/s
-Test 2:  200 tokens in 4.43s → 45.16 tok/s
-Test 3:  200 tokens in 4.44s → 45.01 tok/s
-Test 4:  200 tokens in 4.43s → 45.13 tok/s
-Test 5:  200 tokens in 4.43s → 45.11 tok/s
+Test 1:  200 tokens in 4.42s → 45.21 tok/s
+Test 2:  200 tokens in 4.41s → 45.38 tok/s
+Test 3:  200 tokens in 4.43s → 45.17 tok/s
+Test 4:  200 tokens in 4.41s → 45.32 tok/s
+Test 5:  200 tokens in 4.42s → 45.23 tok/s
 ─────────────────────────────────────
-Average: 45.11 tok/s (σ = 0.06)
+Average: 45.26 tok/s (σ = 0.07)
 ```
 
 ## Quick Start
@@ -144,7 +144,7 @@ Here is exactly how we arrived at this 45 tok/s configuration:
 - Uses `--quantization compressed-tensors` — the model's native format
 - Added `--enable-chunked-prefill` and `--enable-prefix-caching`
 - Set `--gpu-memory-utilization 0.60` (262K context fits comfortably)
-- **Result**: **45.11 tok/s** — a **5× improvement** over both alternatives
+- **Result**: **45.26 tok/s** — a **5× improvement** over both alternatives
 
 ### Key Breakthrough
 
@@ -155,7 +155,7 @@ The **compressed-tensors NVFP4 format** directly maps to vLLM's `FlashInferCutla
 ## Repository Structure
 
 ```
-dgx-spark-vllm-guide/
+dgx-spark-vllm-gemma4-26b-uncensored/
 ├── README.md                          # This file
 ├── scripts/
 │   ├── start.sh                       # One-command container startup

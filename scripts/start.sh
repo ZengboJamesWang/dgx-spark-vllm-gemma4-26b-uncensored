@@ -77,7 +77,7 @@ for i in {1..12}; do
         echo "✅ Server is ready!"
         echo ""
         echo "Test it:"
-        echo "  curl http://localhost:8000/v1/chat completions \\"
+        echo "  curl http://localhost:8000/v1/chat/completions \\"
         echo "    -H 'Content-Type: application/json' \\"
         echo "    -d '{\"model\":\"gemma-4-26b-uncensored-vllm\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
         echo ""
