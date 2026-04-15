@@ -159,9 +159,9 @@ Or via pipx:
 pipx install open-webui
 ```
 
-### Start Open WebUI
+### Start Open WebUI (Host install)
 
-By default Open WebUI runs its own backend. To use it as a **frontend only** pointing at your local vLLM:
+If you installed Open WebUI with **pip/pipx on the host**, it shares the same network as vLLM:
 
 ```bash
 # Set the OpenAI-compatible API base to your local vLLM
@@ -173,8 +173,7 @@ open-webui serve
 
 Then open `http://localhost:8080` in your browser.
 
-### Configure the Model in Open WebUI
-
+In the Open WebUI settings:
 1. Go to **Admin Panel → Settings → Connections**
 2. Under **OpenAI API**, set:
    - **API URL**: `http://localhost:8000/v1`
@@ -184,9 +183,17 @@ Then open `http://localhost:8080` in your browser.
 5. Verify `gemma-4-26b-uncensored-vllm` appears in the model list
 6. Select it from the model dropdown in the chat page
 
-### Alternative: Docker Compose
+### Open WebUI in Docker
 
-If you already run Open WebUI in Docker, add vLLM as an external connection in the Open WebUI settings using `http://host.docker.internal:8000/v1` as the API base.
+If Open WebUI runs inside a Docker container, **`localhost` / `127.0.0.1` will not work** because inside a container those refer to the container itself, not the host machine where vLLM is running.
+
+Use the host-guest DNS name instead:
+
+```
+http://host.docker.internal:8000/v1
+```
+
+> **Note**: `host.docker.internal` works on Docker Desktop and Docker Engine 20.10+ on Linux. If it doesn't resolve on your system, start the Open WebUI container with `--network=host` (Linux only) or use the host's LAN IP (e.g., `http://192.168.1.42:8000/v1`).
 
 ## Why This Works on DGX Spark
 

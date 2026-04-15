@@ -203,9 +203,15 @@ curl http://localhost:8000/v1/models
 bash scripts/start.sh
 ```
 
-**Cause 2**: Open WebUI is running inside Docker and `localhost:8000` doesn't resolve to the host.
+**Cause 2**: Open WebUI is running inside Docker and `localhost` / `127.0.0.1` points to the container itself, not the host.
 
-**Solution**: Use `host.docker.internal:8000` instead of `localhost:8000` in the Open WebUI OpenAI API connection settings.
+**Solution**: Use the host-resolver DNS name inside the container:
+```
+http://host.docker.internal:8000/v1
+```
+If `host.docker.internal` doesn't work on your Linux system, use one of these alternatives:
+- Start the Open WebUI container with `--network=host` (Linux only), then `http://localhost:8000/v1` works.
+- Use the host's LAN IP address, e.g. `http://192.168.1.42:8000/v1`.
 
 **Cause 3**: Wrong API path.
 
