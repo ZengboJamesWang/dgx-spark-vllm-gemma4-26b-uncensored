@@ -4,8 +4,16 @@ set -e
 # Container startup script — runs INSIDE the Docker container
 # Upgrades transformers to support Gemma-4, then starts vLLM
 
+# Auto-detect where vllm's gemma4.py lives (handles Python version changes)
+GEMMA4_PY="$(python3 -c 'import vllm.model_executor.models.gemma4; print(vllm.model_executor.models.gemma4.__file__)' 2>/dev/null)"
+if [ -z "$GEMMA4_PY" ] || [ ! -f "$GEMMA4_PY" ]; then
+    echo "❌ Could not locate vllm model_executor/models/gemma4.py"
+    exit 1
+fi
+
 echo "Updating transformers to support gemma4..."
-pip install --upgrade transformers -q
+# Pin to a known-good version that supports gemma4 (~30s on first container start)
+pip install "transformers==5.5.4" -q
 
 echo "Starting vLLM server with AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4..."
 exec python3 -m vllm.entrypoints.openai.api_server \

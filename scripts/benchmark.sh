@@ -1,6 +1,11 @@
 #!/bin/bash
+set -e
+
 # DGX Spark vLLM Benchmark Script
 # Reproduces the 45+ tok/s benchmark from the guide
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
 
 API_URL="http://localhost:8000/v1/chat/completions"
 MODEL="gemma-4-26b-uncensored-vllm"
@@ -56,16 +61,17 @@ for i in {1..5}; do
     
     end_time=$(date +%s.%N)
     
-    # Use Python for reliable math and JSON parsing
-    read -r tokens elapsed tps <<< "$(python3 -c "
+    # Pipe response into Python for safe parsing and math
+    read -r tokens elapsed tps <<< "$(printf '%s\n%s\n%s\n' "$start_time" "$end_time" "$response" | python3 -c "
 import sys, json
-start = float('$start_time')
-end = float('$end_time')
+start = float(sys.stdin.readline().strip())
+end = float(sys.stdin.readline().strip())
+response = sys.stdin.read()
 elapsed = end - start
 try:
-    d = json.loads('''$response''')
+    d = json.loads(response)
     tokens = d['usage']['completion_tokens']
-except:
+except Exception:
     tokens = 200
 tps = tokens / elapsed if elapsed > 0 else 0
 print(f'{tokens} {elapsed:.3f} {tps:.2f}')

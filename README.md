@@ -80,6 +80,12 @@ bash scripts/start.sh
 3. Loads weights (~100s)
 4. Compiles CUDA graphs (~55s with caching)
 
+To stop:
+
+```bash
+bash scripts/stop.sh
+```
+
 ### 5. Test It
 
 ```bash
@@ -99,6 +105,10 @@ If you prefer to run Docker manually instead of `scripts/start.sh`:
 ```bash
 mkdir -p ~/.cache/huggingface
 
+# Detect the gemma4.py path inside the container (avoids hardcoding Python version)
+GEMMA4_PY="$(docker run --rm --entrypoint python3 vllm/vllm-openai:cu130-nightly \
+  -c 'import vllm.model_executor.models.gemma4; print(vllm.model_executor.models.gemma4.__file__)')"
+
 docker run -d --name vllm-gemma4-26b \
   --gpus all \
   --ipc=host \
@@ -106,7 +116,7 @@ docker run -d --name vllm-gemma4-26b \
   --entrypoint /bin/bash \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$(pwd)/scripts/startup.sh:/startup.sh" \
-  -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
+  -v "$(pwd)/patches/gemma4_patched.py:${GEMMA4_PY}" \
   vllm/vllm-openai:cu130-nightly \
   /startup.sh
 ```
@@ -122,7 +132,13 @@ bash scripts/install-service.sh
 systemctl --user start vllm-gemma4-26b.service
 ```
 
-The service will auto-start on future logins. To check status:
+To also start at **boot time** (before anyone logs in), enable lingering:
+
+```bash
+sudo loginctl enable-linger $USER
+```
+
+To check status:
 
 ```bash
 systemctl --user status vllm-gemma4-26b.service
@@ -188,6 +204,7 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 │   └── gemma4_patched.py              # Required patch for AEON-7 NVFP4 loading
 ├── scripts/
 │   ├── start.sh                       # One-command container startup
+│   ├── stop.sh                        # One-command container stop
 │   ├── startup.sh                     # In-container startup (upgrades transformers)
 │   ├── benchmark.sh                   # Reproduce our 45 tok/s benchmark
 │   ├── download-model.sh              # Pre-download the model

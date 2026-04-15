@@ -12,7 +12,6 @@ IMAGE="vllm/vllm-openai:cu130-nightly"
 MODEL_PATH="/root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4"
 STARTUP_SCRIPT="$SCRIPT_DIR/startup.sh"
 PATCH_FILE="$REPO_DIR/patches/gemma4_patched.py"
-GEMMA4_PY="/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py"
 
 echo "=================================="
 echo "DGX Spark vLLM Starter"
@@ -56,6 +55,16 @@ mkdir -p ~/.cache/huggingface
 echo ""
 echo "Pulling image: $IMAGE"
 docker pull "$IMAGE"
+
+# Auto-detect where vLLM's gemma4.py lives inside the container
+# (avoids breaking when the image switches Python versions)
+echo "Detecting vLLM gemma4.py path inside container..."
+GEMMA4_PY="$(docker run --rm --entrypoint python3 "$IMAGE" -c 'import vllm.model_executor.models.gemma4; print(vllm.model_executor.models.gemma4.__file__)' 2>/dev/null)"
+if [ -z "$GEMMA4_PY" ] || [ ! -n "$GEMMA4_PY" ]; then
+    echo "⚠️  Could not auto-detect gemma4.py path. Falling back to hardcoded path."
+    GEMMA4_PY="/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py"
+fi
+echo "  → $GEMMA4_PY"
 
 echo ""
 echo "Starting vLLM container..."
