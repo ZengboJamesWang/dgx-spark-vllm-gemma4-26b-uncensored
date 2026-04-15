@@ -7,7 +7,7 @@ Common issues when setting up vLLM on DGX Spark and their solutions.
 - [Performance Issues](#performance-issues)
 - [Container Issues](#container-issues)
 - [Auto-Start / Systemd Issues](#auto-start--systemd-issues)
-- [HTTPS/Tailscale Issues](#httpstailscale-issues)
+- [Open WebUI Connection Issues](#open-webui-connection-issues)
 - [Memory Issues](#memory-issues)
 
 ## Model Loading Issues
@@ -186,39 +186,33 @@ systemctl --user restart vllm-gemma4-26b.service
 sudo loginctl enable-linger $USER
 ```
 
-## HTTPS/Tailscale Issues
+## Open WebUI Connection Issues
 
-### "bind() to 100.126.x.x:443 failed"
+### "Connection refused" when Open WebUI tries to reach vLLM
 
-**Cause**: Port 443 is used by SSH or another service.
+**Symptom**: Open WebUI shows an error or no models appear.
 
-**Solution**: Use a different port (e.g., 8443):
-```nginx
-listen YOUR_TAILSCALE_IP:8443 ssl;
-```
+**Cause 1**: vLLM is not running.
 
-### Browser shows "Your connection is not private"
-
-**Cause**: Using self-signed certificate.
-
-**Solution**: This is expected for Tailscale. Click "Advanced" → "Proceed".
-
-Alternatively, get a real certificate:
+**Solution**:
 ```bash
-sudo tailscale cert your-machine.YOUR_TAILNET.ts.net
+# Verify vLLM is up
+curl http://localhost:8000/v1/models
+
+# If not, start it
+bash scripts/start.sh
 ```
-(Requires Tailscale plan that supports HTTPS certificates)
 
-### Cannot access from other Tailscale machine
+**Cause 2**: Open WebUI is running inside Docker and `localhost:8000` doesn't resolve to the host.
 
-**Check**:
-1. Both machines show in `tailscale status`
-2. No ACL rules blocking port 8000/8443
-3. Firewall not blocking on host:
-   ```bash
-   sudo ufw status
-   sudo iptables -L | grep 8000
-   ```
+**Solution**: Use `host.docker.internal:8000` instead of `localhost:8000` in the Open WebUI OpenAI API connection settings.
+
+**Cause 3**: Wrong API path.
+
+**Solution**: Ensure the API base URL ends with `/v1`:
+```
+http://localhost:8000/v1
+```
 
 ## Memory Issues
 

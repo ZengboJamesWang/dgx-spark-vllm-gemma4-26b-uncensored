@@ -17,7 +17,6 @@ This repository documents how to run **fast, uncensored large language models** 
 - **NVFP4 quantization**: Leverages Blackwell's native FP4 tensor cores for 2-5× speedup
 - **FP8 KV cache**: Halves memory usage without accuracy loss
 - **CUDA graphs + chunked prefill**: Additional 20-40% throughput gains
-- **Tailscale HTTPS**: Secure remote access without exposing ports to the local network
 - **Auto-start on boot**: Includes systemd user service for persistence after reboot
 
 ## Performance
@@ -144,6 +143,51 @@ To check status:
 systemctl --user status vllm-gemma4-26b.service
 ```
 
+## Open WebUI Integration
+
+You can connect [Open WebUI](https://github.com/open-webui/open-webui) to this local vLLM endpoint for a chat-GPT-like interface.
+
+### Install Open WebUI
+
+```bash
+# Using pip (recommended for local single-user setups)
+pip install open-webui
+```
+
+Or via pipx:
+```bash
+pipx install open-webui
+```
+
+### Start Open WebUI
+
+By default Open WebUI runs its own backend. To use it as a **frontend only** pointing at your local vLLM:
+
+```bash
+# Set the OpenAI-compatible API base to your local vLLM
+export OPENAI_API_BASE_URL="http://localhost:8000/v1"
+
+# Start Open WebUI
+open-webui serve
+```
+
+Then open `http://localhost:8080` in your browser.
+
+### Configure the Model in Open WebUI
+
+1. Go to **Admin Panel → Settings → Connections**
+2. Under **OpenAI API**, set:
+   - **API URL**: `http://localhost:8000/v1`
+   - **API Key**: `sk-1234567890` (any dummy key works; vLLM doesn't validate it)
+3. Click **Save**
+4. Go to **Admin Panel → Settings → Models**
+5. Verify `gemma-4-26b-uncensored-vllm` appears in the model list
+6. Select it from the model dropdown in the chat page
+
+### Alternative: Docker Compose
+
+If you already run Open WebUI in Docker, add vLLM as an external connection in the Open WebUI settings using `http://host.docker.internal:8000/v1` as the API base.
+
 ## Why This Works on DGX Spark
 
 The DGX Spark's **GB10 GPU** (Blackwell architecture, SM12.1) has several unique characteristics that make model selection critical:
@@ -211,8 +255,6 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 │   └── install-service.sh             # Install systemd auto-start service
 ├── systemd/
 │   └── vllm-gemma4-26b.service        # Systemd user service file
-├── configs/
-│   └── nginx-tailscale.conf           # Tailscale HTTPS reverse proxy
 ├── benchmarks/
 │   └── results-gemma4-26b.csv         # Raw benchmark data
 ├── docs/
@@ -221,25 +263,6 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 │   └── MODEL_COMPARISON.md            # Full comparison matrix
 └── LICENSE
 ```
-
-## Secure Remote Access (Tailscale + HTTPS)
-
-We expose the vLLM API only over Tailscale, not to the local network.
-
-### Setup
-
-1. Ensure both machines are on the same Tailscale tailnet
-2. Get your DGX Spark Tailscale IP:
-   ```bash
-   tailscale ip -4
-   ```
-3. Deploy the nginx config from `configs/nginx-tailscale.conf`
-4. Access from another Tailscale machine:
-   ```
-   https://YOUR_TAILSCALE_IP:8443
-   ```
-
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for the full HTTPS setup.
 
 ## Benchmarking
 
@@ -268,7 +291,6 @@ CUDA_VERSION=13.0.1
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for:
 - "model type gemma4 not recognized" fixes
 - Transformer version conflicts
-- Port binding issues with nginx
 - Memory errors and how to tune `--gpu-memory-utilization`
 
 ## Credits
