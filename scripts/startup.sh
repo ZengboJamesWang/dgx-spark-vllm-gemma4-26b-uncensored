@@ -5,7 +5,7 @@ set -e
 # Upgrades transformers to support Gemma-4, then starts vLLM
 
 # Auto-detect where vllm's gemma4.py lives (handles Python version changes)
-GEMMA4_PY="$(python3 -c 'import vllm.model_executor.models.gemma4; print(vllm.model_executor.models.gemma4.__file__)' 2>/dev/null)"
+GEMMA4_PY="$(python3 -c "import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')")"
 if [ -z "$GEMMA4_PY" ] || [ ! -f "$GEMMA4_PY" ]; then
     echo "❌ Could not locate vllm model_executor/models/gemma4.py"
     exit 1

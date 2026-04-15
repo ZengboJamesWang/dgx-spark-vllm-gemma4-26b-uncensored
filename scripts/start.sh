@@ -8,7 +8,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONTAINER_NAME="vllm-gemma4-26b"
-IMAGE="vllm/vllm-openai:cu130-nightly"
+# Pinned to a known-good cu130-nightly digest because the rolling tag can introduce
+# breakages (e.g. newer nightlies have shipped with incompatible nixl_ep libraries).
+IMAGE="vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f"
 MODEL_PATH="/root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4"
 STARTUP_SCRIPT="$SCRIPT_DIR/startup.sh"
 PATCH_FILE="$REPO_DIR/patches/gemma4_patched.py"
@@ -59,7 +61,7 @@ docker pull "$IMAGE"
 # Auto-detect where vLLM's gemma4.py lives inside the container
 # (avoids breaking when the image switches Python versions)
 echo "Detecting vLLM gemma4.py path inside container..."
-GEMMA4_PY="$(docker run --rm --entrypoint python3 "$IMAGE" -c 'import vllm.model_executor.models.gemma4; print(vllm.model_executor.models.gemma4.__file__)' 2>/dev/null)"
+GEMMA4_PY="$(docker run --rm --entrypoint python3 "$IMAGE" -c "import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')")"
 if [ -z "$GEMMA4_PY" ] || [ ! -n "$GEMMA4_PY" ]; then
     echo "⚠️  Could not auto-detect gemma4.py path. Falling back to hardcoded path."
     GEMMA4_PY="/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py"

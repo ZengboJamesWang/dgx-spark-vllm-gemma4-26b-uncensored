@@ -105,9 +105,11 @@ If you prefer to run Docker manually instead of `scripts/start.sh`:
 mkdir -p ~/.cache/huggingface
 
 # Detect the gemma4.py path inside the container (avoids hardcoding Python version)
-GEMMA4_PY="$(docker run --rm --entrypoint python3 vllm/vllm-openai:cu130-nightly \
-  -c 'import vllm.model_executor.models.gemma4; print(vllm.model_executor.models.gemma4.__file__)')"
+GEMMA4_PY="$(docker run --rm --entrypoint python3 \
+  vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f \
+  -c \"import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')\")"
 
+# Pinned digest — the rolling cu130-nightly tag can ship with breakages.
 docker run -d --name vllm-gemma4-26b \
   --gpus all \
   --ipc=host \
@@ -116,7 +118,7 @@ docker run -d --name vllm-gemma4-26b \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$(pwd)/scripts/startup.sh:/startup.sh" \
   -v "$(pwd)/patches/gemma4_patched.py:${GEMMA4_PY}" \
-  vllm/vllm-openai:cu130-nightly \
+  vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f \
   /startup.sh
 ```
 
