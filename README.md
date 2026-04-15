@@ -18,6 +18,7 @@ This repository documents how to run **fast, uncensored large language models** 
 - **FP8 KV cache**: Halves memory usage without accuracy loss
 - **CUDA graphs + chunked prefill**: Additional 20-40% throughput gains
 - **Tailscale HTTPS**: Secure remote access without exposing ports to the local network
+- **Auto-start on boot**: Includes systemd user service for persistence after reboot
 
 ## Performance
 
@@ -50,46 +51,36 @@ Average: 45.26 tok/s (σ = 0.07)
 - NVIDIA DGX Spark or any **Blackwell SM12.1+** GPU (GB10, RTX 5090, etc.)
 - Docker with NVIDIA Container Toolkit
 - At least 20GB free disk space for the model
+- `python3` and `curl` available on the host
 
-### 2. One-Command Start
+### 2. Clone this repo
+
+```bash
+git clone https://github.com/ZengboJamesWang/dgx-spark-vllm-gemma4-26b-uncensored.git
+cd dgx-spark-vllm-gemma4-26b-uncensored
+```
+
+### 3. Download the model (recommended)
+
+```bash
+bash scripts/download-model.sh
+```
+
+This downloads the ~15GB model to `~/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4`.
+
+### 4. One-Command Start
 
 ```bash
 bash scripts/start.sh
 ```
 
-Or manually:
+**Note**: First startup takes ~5-10 minutes while the container:
+1. Upgrades `transformers` to support Gemma-4
+2. Downloads the model if not pre-downloaded (~15GB)
+3. Loads weights (~100s)
+4. Compiles CUDA graphs (~55s with caching)
 
-```bash
-mkdir -p ~/.cache/huggingface
-
-docker run -d --name vllm-gemma4-26b \
-  --gpus all \
-  --ipc=host \
-  -p 8000:8000 \
-  -v ~/.cache/huggingface:/root/.cache/huggingface \
-  vllm/vllm-openai:cu130-nightly \
-  --model /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
-  --served-model-name gemma-4-26b-uncensored-vllm \
-  --quantization compressed-tensors \
-  --load-format safetensors \
-  --max-model-len 262000 \
-  --max-num-seqs 128 \
-  --max-num-batched-tokens 131072 \
-  --gpu-memory-utilization 0.60 \
-  --kv-cache-dtype fp8 \
-  --enable-prefix-caching \
-  --enable-chunked-prefill \
-  --trust-remote-code \
-  --host 0.0.0.0 \
-  --port 8000
-```
-
-**Note**: First startup takes ~5-10 minutes while vLLM:
-1. Downloads the model (~15GB)
-2. Loads weights (~100s)
-3. Compiles CUDA graphs (~55s with caching)
-
-### 3. Test It
+### 5. Test It
 
 ```bash
 curl http://localhost:8000/v1/chat/completions \
@@ -99,6 +90,42 @@ curl http://localhost:8000/v1/chat/completions \
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 200
   }'
+```
+
+## Manual Docker Run
+
+If you prefer to run Docker manually instead of `scripts/start.sh`:
+
+```bash
+mkdir -p ~/.cache/huggingface
+
+docker run -d --name vllm-gemma4-26b \
+  --gpus all \
+  --ipc=host \
+  -p 8000:8000 \
+  --entrypoint /bin/bash \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -v "$(pwd)/scripts/startup.sh:/startup.sh" \
+  -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
+  vllm/vllm-openai:cu130-nightly \
+  /startup.sh
+```
+
+The `startup.sh` script upgrades `transformers` inside the container before launching vLLM, and the `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
+
+## Auto-Start on Boot (Systemd)
+
+To make vLLM automatically start after reboots:
+
+```bash
+bash scripts/install-service.sh
+systemctl --user start vllm-gemma4-26b.service
+```
+
+The service will auto-start on future logins. To check status:
+
+```bash
+systemctl --user status vllm-gemma4-26b.service
 ```
 
 ## Why This Works on DGX Spark
@@ -157,10 +184,16 @@ The **compressed-tensors NVFP4 format** directly maps to vLLM's `FlashInferCutla
 ```
 dgx-spark-vllm-gemma4-26b-uncensored/
 ├── README.md                          # This file
+├── patches/
+│   └── gemma4_patched.py              # Required patch for AEON-7 NVFP4 loading
 ├── scripts/
 │   ├── start.sh                       # One-command container startup
+│   ├── startup.sh                     # In-container startup (upgrades transformers)
 │   ├── benchmark.sh                   # Reproduce our 45 tok/s benchmark
-│   └── download-model.sh              # Pre-download the model
+│   ├── download-model.sh              # Pre-download the model
+│   └── install-service.sh             # Install systemd auto-start service
+├── systemd/
+│   └── vllm-gemma4-26b.service        # Systemd user service file
 ├── configs/
 │   └── nginx-tailscale.conf           # Tailscale HTTPS reverse proxy
 ├── benchmarks/

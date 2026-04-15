@@ -6,6 +6,7 @@ Common issues when setting up vLLM on DGX Spark and their solutions.
 - [Model Loading Issues](#model-loading-issues)
 - [Performance Issues](#performance-issues)
 - [Container Issues](#container-issues)
+- [Auto-Start / Systemd Issues](#auto-start--systemd-issues)
 - [HTTPS/Tailscale Issues](#httpstailscale-issues)
 - [Memory Issues](#memory-issues)
 
@@ -19,15 +20,9 @@ Value error, The checkpoint you are trying to load has model type `gemma4`
 but Transformers does not recognize this architecture.
 ```
 
-**Cause**: Transformers version too old for Gemma 4 models.
+**Cause**: The container's built-in `transformers` version is too old for Gemma 4.
 
-**Solution**:
-```bash
-# Inside the container
-pip install --upgrade transformers
-```
-
-Or use a startup script that updates transformers before starting vLLM.
+**Solution**: This repo handles it automatically. `scripts/start.sh` mounts `scripts/startup.sh` into the container, which runs `pip install --upgrade transformers` before launching vLLM. If you are running Docker manually, make sure you use the `--entrypoint` and startup script approach shown in the README.
 
 ### "Cannot find model"
 
@@ -43,18 +38,30 @@ FileNotFoundError: [Errno 2] No such file or directory: '/root/.cache/huggingfac
 # Ensure cache directory exists on host
 mkdir -p ~/.cache/huggingface
 
+# Pre-download the model
+bash scripts/download-model.sh
+
 # Check the mount path
 docker inspect vllm-gemma4-26b | grep -A 5 Mounts
 ```
+
+### "No such file or directory: 'gemma4_patched.py'"
+
+**Symptom**: `scripts/start.sh` exits immediately with a patch-not-found error.
+
+**Cause**: You may have moved the repo after cloning, or the patch file is missing.
+
+**Solution**: Ensure you run `scripts/start.sh` from inside the cloned repository directory. The script looks for `patches/gemma4_patched.py` relative to itself.
 
 ### Slow first startup
 
 **Symptom**: First request takes 5-10 minutes.
 
-**Cause**: This is normal! vLLM is:
-1. Downloading the model (~15GB)
-2. Loading weights (~100s)
-3. Compiling CUDA graphs (~55s)
+**Cause**: This is normal! The container is:
+1. Upgrading `transformers` inside the container
+2. Downloading the model (~15GB) if not pre-downloaded
+3. Loading weights (~100s)
+4. Compiling CUDA graphs (~55s)
 
 **Solution**: Pre-download the model:
 ```bash
@@ -85,6 +92,8 @@ curl http://localhost:8000/v1/models | python3 -m json.tool
 2. Ensure CUDA graphs are enabled (check logs for "Capturing CUDA graphs")
 
 3. Verify the model is AEON-7's 26B, not LilaRest's 31B
+
+4. Verify the `gemma4_patched.py` is mounted into the container. Without the patch, vLLM may silently fall back to a slower path or error out.
 
 ### "Not enough SMs to use max_autotune_gemm mode"
 
@@ -125,6 +134,7 @@ docker logs vllm-gemma4-26b
 1. Port 8000 already in use
 2. Out of disk space
 3. Permission denied on cache directory
+4. Missing `gemma4_patched.py` mount
 
 **Solution**:
 ```bash
@@ -136,6 +146,41 @@ df -h
 
 # Fix permissions
 sudo chown -R $USER:$USER ~/.cache/huggingface
+
+# Verify patch file exists
+ls -la patches/gemma4_patched.py
+```
+
+## Auto-Start / Systemd Issues
+
+### "Failed to start vllm-gemma4-26b.service"
+
+**Symptom**: `systemctl --user start vllm-gemma4-26b.service` fails.
+
+**Cause 1 — `docker.service` not found**: On some distros, Docker runs as a root service but user systemd doesn't see `docker.service` as a dependency.
+
+**Solution**: The service file in this repo uses `After=docker.service` without `Requires=docker.service` to avoid this. If you still have issues, start Docker manually:
+```bash
+sudo systemctl start docker
+systemctl --user start vllm-gemma4-26b.service
+```
+
+**Cause 2 — `216/GROUP` error**: The `User=` directive in an old version of the service file conflicts with user-mode systemd.
+
+**Solution**: Re-run `scripts/install-service.sh` to get the latest service file, then:
+```bash
+systemctl --user daemon-reload
+systemctl --user restart vllm-gemma4-26b.service
+```
+
+### Service doesn't start after reboot
+
+**Cause**: User systemd services only auto-start on login, not on system boot, unless lingering is enabled.
+
+**Solution**:
+```bash
+# Enable lingering so user services start at boot even without login
+sudo loginctl enable-linger $USER
 ```
 
 ## HTTPS/Tailscale Issues

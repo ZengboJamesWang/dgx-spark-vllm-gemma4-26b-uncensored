@@ -12,7 +12,7 @@ echo "Hardware: NVIDIA DGX Spark (GB10 Blackwell)"
 echo "=================================================="
 
 # Check if server is running
-if ! curl -s http://localhost:8000/health > /dev/null 2>&1; then
+if ! curl -s http://localhost:8000/v1/models > /dev/null 2>&1; then
     echo "❌ Server not running! Start it first with: bash scripts/start.sh"
     exit 1
 fi
@@ -55,13 +55,21 @@ for i in {1..5}; do
         -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"$prompt\"}],\"max_tokens\":200}")
     
     end_time=$(date +%s.%N)
-    elapsed=$(echo "$end_time - $start_time" | bc)
     
-    # Extract actual token count from response
-    tokens=$(echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['usage']['completion_tokens'])" 2>/dev/null || echo "200")
-    
-    # Calculate tokens per second
-    tps=$(echo "scale=2; $tokens / $elapsed" | bc)
+    # Use Python for reliable math and JSON parsing
+    read -r tokens elapsed tps <<< "$(python3 -c "
+import sys, json
+start = float('$start_time')
+end = float('$end_time')
+elapsed = end - start
+try:
+    d = json.loads('''$response''')
+    tokens = d['usage']['completion_tokens']
+except:
+    tokens = 200
+tps = tokens / elapsed if elapsed > 0 else 0
+print(f'{tokens} {elapsed:.3f} {tps:.2f}')
+")"
     
     echo "  Tokens: $tokens"
     echo "  Time: ${elapsed}s"
@@ -76,9 +84,18 @@ echo "=================================================="
 echo "BENCHMARK RESULTS"
 echo "=================================================="
 
-avg_time=$(tail -n +2 "$RESULTS_FILE" | awk -F',' '{sum+=$4; count++} END {printf "%.2f", sum/count}')
-avg_tps=$(tail -n +2 "$RESULTS_FILE" | awk -F',' '{sum+=$5; count++} END {printf "%.2f", sum/count}')
-total_tokens=$(tail -n +2 "$RESULTS_FILE" | awk -F',' '{sum+=$3} END {print sum}')
+read -r avg_time avg_tps total_tokens <<< "$(python3 -c "
+import csv
+with open('$RESULTS_FILE') as f:
+    rows = list(csv.reader(f))[1:]
+times = [float(r[3]) for r in rows]
+tps_vals = [float(r[4]) for r in rows]
+tokens = [int(r[2]) for r in rows]
+avg_time = sum(times)/len(times)
+avg_tps = sum(tps_vals)/len(tps_vals)
+total = sum(tokens)
+print(f'{avg_time:.2f} {avg_tps:.2f} {total}')
+")"
 
 echo ""
 tail -n +2 "$RESULTS_FILE" | while IFS=',' read -r test prompt tokens time tps; do
