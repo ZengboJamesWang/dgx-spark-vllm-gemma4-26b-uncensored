@@ -69,6 +69,11 @@ This downloads the ~15GB model to `~/.cache/huggingface/gemma-4-26B-it-uncensore
 
 ### 4. One-Command Start
 
+Pick the container image that fits your setup:
+
+#### Option A — Official vLLM image (default)
+Uses the upstream `vllm/vllm-openai` image (pinned to a working digest). Good if you prefer official images or are on a non-DGX-Spark Blackwell GPU.
+
 ```bash
 bash scripts/start.sh
 ```
@@ -79,7 +84,16 @@ bash scripts/start.sh
 3. Loads weights (~100s)
 4. Compiles CUDA graphs (~55s with caching)
 
-To stop:
+#### Option B — AEON-7 pre-built image (DGX Spark optimized)
+Uses AEON-7's custom image compiled specifically for DGX Spark (SM 12.1). It already contains `transformers 5.5.0`, so startup is slightly faster.
+
+```bash
+bash scripts/start-aeon.sh
+```
+
+> This image is specifically built for SM 12.1. It may not work on other GPU architectures.
+
+To stop (works with either option):
 
 ```bash
 bash scripts/stop.sh
@@ -256,7 +270,8 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 ├── patches/
 │   └── gemma4_patched.py              # Required patch for AEON-7 NVFP4 loading
 ├── scripts/
-│   ├── start.sh                       # One-command container startup
+│   ├── start.sh                       # One-command startup (official vLLM image)
+│   ├── start-aeon.sh                  # One-command startup (AEON-7 pre-built image)
 │   ├── stop.sh                        # One-command container stop
 │   ├── startup.sh                     # In-container startup (upgrades transformers)
 │   ├── benchmark.sh                   # Reproduce our 45 tok/s benchmark

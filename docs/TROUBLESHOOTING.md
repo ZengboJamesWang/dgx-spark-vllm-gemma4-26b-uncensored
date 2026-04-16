@@ -24,6 +24,8 @@ but Transformers does not recognize this architecture.
 
 **Solution**: This repo handles it automatically. `scripts/start.sh` mounts `scripts/startup.sh` into the container, which runs `pip install --upgrade transformers` before launching vLLM. If you are running Docker manually, make sure you use the `--entrypoint` and startup script approach shown in the README.
 
+> **Note**: If you used `scripts/start-aeon.sh` (AEON-7 pre-built image), this error should not occur because that image already ships with `transformers 5.5.0`.
+
 ### "Cannot find model"
 
 **Symptom**:
