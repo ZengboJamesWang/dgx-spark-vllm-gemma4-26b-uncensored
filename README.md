@@ -113,7 +113,9 @@ curl http://localhost:8000/v1/chat/completions \
 
 ## Manual Docker Run
 
-If you prefer to run Docker manually instead of `scripts/start.sh`:
+If you prefer to run Docker manually instead of the helper scripts:
+
+### Option A — Official vLLM image
 
 ```bash
 mkdir -p ~/.cache/huggingface
@@ -121,7 +123,7 @@ mkdir -p ~/.cache/huggingface
 # Detect the gemma4.py path inside the container (avoids hardcoding Python version)
 GEMMA4_PY="$(docker run --rm --entrypoint python3 \
   vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f \
-  -c \"import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')\")"
+  -c "import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')")"
 
 # Pinned digest — the rolling cu130-nightly tag can ship with breakages.
 docker run -d --name vllm-gemma4-26b \
@@ -137,6 +139,38 @@ docker run -d --name vllm-gemma4-26b \
 ```
 
 The `startup.sh` script upgrades `transformers` inside the container before launching vLLM, and the `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
+
+### Option B — AEON-7 pre-built image
+
+```bash
+mkdir -p ~/.cache/huggingface
+
+docker run -d --name vllm-gemma4-26b \
+  --gpus all \
+  --ipc=host \
+  -p 8000:8000 \
+  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
+  ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest \
+  vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
+    --served-model-name gemma-4-26b-uncensored-vllm \
+    --tensor-parallel-size 1 \
+    --max-model-len 262000 \
+    --max-num-seqs 128 \
+    --gpu-memory-utilization 0.8 \
+    --trust-remote-code \
+    --host 0.0.0.0 --port 8000 \
+    --dtype auto \
+    --kv-cache-dtype fp8 \
+    --enable-chunked-prefill \
+    --max-num-batched-tokens 131072 \
+    --load-format safetensors \
+    --enable-prefix-caching \
+    --enable-auto-tool-choice \
+    --tool-call-parser gemma4 \
+    --reasoning-parser gemma4
+```
 
 ## Auto-Start on Boot (Systemd)
 
