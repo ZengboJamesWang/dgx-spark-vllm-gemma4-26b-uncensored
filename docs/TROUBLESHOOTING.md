@@ -22,7 +22,7 @@ but Transformers does not recognize this architecture.
 
 **Cause**: The container's built-in `transformers` version is too old for Gemma 4.
 
-**Solution**: This repo handles it automatically. `scripts/start.sh` mounts `scripts/startup.sh` into the container, which runs `pip install --upgrade transformers` before launching vLLM. If you are running Docker manually, make sure you use the `--entrypoint` and startup script approach shown in the README.
+**Solution**: Make sure you're using the AEON-7 pre-built image (`ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest`) which already includes transformers 5.5.0. Do not use the generic `vllm/vllm-openai` image which requires transformers <5.0.
 
 ### "Cannot find model"
 

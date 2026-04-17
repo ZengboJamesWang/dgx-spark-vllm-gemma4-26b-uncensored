@@ -8,9 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONTAINER_NAME="vllm-gemma4-26b"
-# Pinned to a known-good cu130-nightly digest because the rolling tag can introduce
-# breakages (e.g. newer nightlies have shipped with incompatible nixl_ep libraries).
-IMAGE="vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f"
+# Use AEON-7 pre-built image for DGX Spark (SM 12.1) with transformers 5.5.0
+IMAGE="ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest"
 MODEL_PATH="/root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4"
 STARTUP_SCRIPT="$SCRIPT_DIR/startup.sh"
 PATCH_FILE="$REPO_DIR/patches/gemma4_patched.py"
@@ -58,16 +57,6 @@ echo ""
 echo "Pulling image: $IMAGE"
 docker pull "$IMAGE"
 
-# Auto-detect where vLLM's gemma4.py lives inside the container
-# (avoids breaking when the image switches Python versions)
-echo "Detecting vLLM gemma4.py path inside container..."
-GEMMA4_PY="$(docker run --rm --entrypoint python3 "$IMAGE" -c "import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')")"
-if [ -z "$GEMMA4_PY" ] || [ ! -n "$GEMMA4_PY" ]; then
-    echo "⚠️  Could not auto-detect gemma4.py path. Falling back to hardcoded path."
-    GEMMA4_PY="/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py"
-fi
-echo "  → $GEMMA4_PY"
-
 echo ""
 echo "Starting vLLM container..."
 echo "Model: $MODEL_PATH"
@@ -78,12 +67,12 @@ docker run -d --name "$CONTAINER_NAME" \
   --gpus all \
   --ipc=host \
   -p 8000:8000 \
-  --entrypoint /bin/bash \
+  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$STARTUP_SCRIPT:/startup.sh" \
-  -v "$PATCH_FILE:$GEMMA4_PY" \
+  -v "$PATCH_FILE:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
   "$IMAGE" \
-  /startup.sh
+  bash /startup.sh
 
 echo ""
 echo "Container started: $CONTAINER_NAME"

@@ -1,0 +1,44 @@
+{
+  "_comment": "OpenClaw configuration snippet for vLLM Gemma-4-26B Uncensored",
+  "_comment2": "Add these sections to your ~/.openclaw/openclaw.json",
+
+  "models.providers.vllm": {
+    "baseUrl": "http://localhost:8000/v1",
+    "apiKey": "vllm-local",
+    "api": "openai-completions",
+    "models": [
+      {
+        "id": "gemma-4-26b-uncensored-vllm",
+        "name": "gemma-4-26b-uncensored-vllm",
+        "reasoning": false,
+        "input": ["text"],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 262000,
+        "maxTokens": 16384
+      }
+    ]
+  },
+
+  "plugins.entries.vllm": {
+    "enabled": true
+  },
+
+  "agents.defaults.model": {
+    "primary": "vllm/gemma-4-26b-uncensored-vllm",
+    "fallbacks": [
+      "minimax/MiniMax-M2.5",
+      "ollama/gemma4:26b"
+    ]
+  },
+
+  "agents.defaults.models": {
+    "vllm/gemma-4-26b-uncensored-vllm": {
+      "alias": "gemma4-26b-vllm"
+    }
+  }
+}

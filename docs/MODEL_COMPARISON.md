@@ -100,4 +100,4 @@ This ensures the benchmark covers explanation, code, science, and technical topi
 
 ## Recommendation
 
-For DGX Spark users, the evidence is clear: **AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4** with vLLM `cu130-nightly` and `--quantization compressed-tensors` is the optimal configuration, delivering **5× the speed** of alternatives while maintaining excellent quality and offering uncensored outputs.
+For DGX Spark users, the evidence is clear: **AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4** with the AEON-7 pre-built vLLM image (`ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest`) and `--quantization compressed-tensors` is the optimal configuration, delivering **5× the speed** of alternatives while maintaining excellent quality and offering uncensored outputs.

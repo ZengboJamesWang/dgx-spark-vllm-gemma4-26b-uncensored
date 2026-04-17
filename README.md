@@ -2,7 +2,7 @@
 
 > High-performance LLM inference on NVIDIA DGX Spark using vLLM with uncensored Gemma-4 models.
 
-[![Docker](https://img.shields.io/badge/Docker-vllm/vllm--openai:cu130--nightly-blue)](https://hub.docker.com/r/vllm/vllm-openai)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io/aeon--7/vllm--spark--gemma4--nvfp4-blue)](https://github.com/AEON-7/vllm-spark-gemma4-nvfp4)
 [![Hardware](https://img.shields.io/badge/Hardware-DGX%20Spark%20(GB10)-green)](https://www.nvidia.com/en-us/data-center/dgx-spark/)
 [![Throughput](https://img.shields.io/badge/Throughput-45%2B%20tok/s-orange)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -13,11 +13,12 @@ This repository documents how to run **fast, uncensored large language models** 
 
 ### What Makes This Setup Special
 
-- **CUDA 13.0 + Blackwell optimization**: Uses the `cu130-nightly` vLLM image with SM12.1 support
+- **CUDA 13.0 + Blackwell optimization**: Uses the AEON-7 pre-built vLLM image compiled for SM12.1
 - **NVFP4 quantization**: Leverages Blackwell's native FP4 tensor cores for 2-5× speedup
 - **FP8 KV cache**: Halves memory usage without accuracy loss
 - **CUDA graphs + chunked prefill**: Additional 20-40% throughput gains
 - **Auto-start on boot**: Includes systemd user service for persistence after reboot
+- **OpenClaw ready**: Pre-configured integration with [OpenClaw](https://openclaw.ai) agents
 
 ## Performance
 
@@ -74,10 +75,9 @@ bash scripts/start.sh
 ```
 
 **Note**: First startup takes ~5-10 minutes while the container:
-1. Upgrades `transformers` to support Gemma-4
-2. Downloads the model if not pre-downloaded (~15GB)
-3. Loads weights (~100s)
-4. Compiles CUDA graphs (~55s with caching)
+1. Downloads the model if not pre-downloaded (~15GB)
+2. Loads weights (~100s)
+3. Compiles CUDA graphs (~55s with caching)
 
 To stop:
 
@@ -97,6 +97,101 @@ curl http://localhost:8000/v1/chat/completions \
   }'
 ```
 
+## Connect to OpenClaw (Recommended)
+
+This repo includes ready-to-use configuration for [OpenClaw](https://openclaw.ai) — connect your local vLLM endpoint to OpenClaw agents in minutes.
+
+### One-Command Setup (Easiest)
+
+```bash
+bash scripts/configure-openclaw.sh
+```
+
+This automatically patches your `~/.openclaw/openclaw.json` with:
+- ✅ vLLM provider configuration
+- ✅ vLLM plugin enabled
+- ✅ Model alias added
+- 📦 Automatic backup created
+
+To also set vLLM as your **primary** model:
+
+```bash
+bash scripts/configure-openclaw.sh --primary
+```
+
+Then restart OpenClaw:
+
+```bash
+systemctl --user restart openclaw-gateway
+```
+
+### Manual Setup
+
+If you prefer to configure manually, copy the configuration from [`openclaw/openclaw-config-snippet.json`](openclaw/openclaw-config-snippet.json) into your `~/.openclaw/openclaw.json`:
+
+**1. Add the vLLM provider** (inside `models.providers`):
+
+```json
+"vllm": {
+  "baseUrl": "http://localhost:8000/v1",
+  "apiKey": "vllm-local",
+  "api": "openai-completions",
+  "models": [
+    {
+      "id": "gemma-4-26b-uncensored-vllm",
+      "name": "gemma-4-26b-uncensored-vllm",
+      "reasoning": false,
+      "input": ["text"],
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "contextWindow": 262000,
+      "maxTokens": 16384
+    }
+  ]
+}
+```
+
+**2. Enable the vLLM plugin** (inside `plugins.entries`):
+
+```json
+"vllm": {
+  "enabled": true
+}
+```
+
+**3. Set as your primary model** (inside `agents.defaults.model`):
+
+```json
+"model": {
+  "primary": "vllm/gemma-4-26b-uncensored-vllm",
+  "fallbacks": [
+    "minimax/MiniMax-M2.5",
+    "ollama/gemma4:26b"
+  ]
+}
+```
+
+**4. Add model alias** (inside `agents.defaults.models`):
+
+```json
+"vllm/gemma-4-26b-uncensored-vllm": {
+  "alias": "gemma4-26b-vllm"
+}
+```
+
+That's it! OpenClaw will now use your local uncensored Gemma-4 model with **262K context**, **tool calling**, and **reasoning support**.
+
+### Features Available
+
+- **262K context window** — handle long documents and conversations
+- **Uncensored outputs** — no safety filters, full model capabilities
+- **Tool calling** — native function calling via `--enable-auto-tool-choice`
+- **Reasoning parser** — handles Gemma 4's thinking tokens via `--reasoning-parser gemma4`
+
 ## Manual Docker Run
 
 If you prefer to run Docker manually instead of `scripts/start.sh`:
@@ -104,25 +199,34 @@ If you prefer to run Docker manually instead of `scripts/start.sh`:
 ```bash
 mkdir -p ~/.cache/huggingface
 
-# Detect the gemma4.py path inside the container (avoids hardcoding Python version)
-GEMMA4_PY="$(docker run --rm --entrypoint python3 \
-  vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f \
-  -c \"import glob; paths=glob.glob('/usr/local/lib/python*/site-packages/vllm/model_executor/models/gemma4.py')+glob.glob('/usr/local/lib/python*/dist-packages/vllm/model_executor/models/gemma4.py'); print(paths[0] if paths else '')\")"
-
-# Pinned digest — the rolling cu130-nightly tag can ship with breakages.
 docker run -d --name vllm-gemma4-26b \
   --gpus all \
   --ipc=host \
   -p 8000:8000 \
-  --entrypoint /bin/bash \
+  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
-  -v "$(pwd)/scripts/startup.sh:/startup.sh" \
-  -v "$(pwd)/patches/gemma4_patched.py:${GEMMA4_PY}" \
-  vllm/vllm-openai@sha256:a6cb8f72c66a419f2a7bf62e975ca0ba33dd4097b6b26858d166647c4cf4ba1f \
-  /startup.sh
+  -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
+  ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest \
+  vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
+    --served-model-name gemma-4-26b-uncensored-vllm \
+    --tensor-parallel-size 1 \
+    --max-model-len 262000 \
+    --max-num-seqs 128 \
+    --gpu-memory-utilization 0.8 \
+    --trust-remote-code \
+    --host 0.0.0.0 --port 8000 \
+    --dtype auto \
+    --kv-cache-dtype fp8 \
+    --enable-chunked-prefill \
+    --max-num-batched-tokens 131072 \
+    --load-format safetensors \
+    --enable-prefix-caching \
+    --enable-auto-tool-choice \
+    --tool-call-parser gemma4 \
+    --reasoning-parser gemma4
 ```
 
-The `startup.sh` script upgrades `transformers` inside the container before launching vLLM, and the `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
+The `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
 
 ## Auto-Start on Boot (Systemd)
 
@@ -230,7 +334,7 @@ Here is exactly how we arrived at this 45 tok/s configuration:
 - **Issue**: Ollama's runtime lacks CUDA graph capture and FP4-optimized kernels
 
 ### Phase 2: vLLM with LilaRest 31B
-- Tried `LilaRest/gemma-4-31B-it-NVFP4-turbo` on vLLM `cu130-nightly`
+- Tried `LilaRest/gemma-4-31B-it-NVFP4-turbo` on generic vLLM images
 - Required `--quantization modelopt` and `transformers>=5.5.0` for gemma4 support
 - **Result**: 9.16 tok/s
 - **Issue**: Surprisingly slow. The `modelopt` quantization backend has higher kernel latency on DGX Spark compared to `compressed-tensors` format models.
@@ -256,9 +360,9 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 ├── patches/
 │   └── gemma4_patched.py              # Required patch for AEON-7 NVFP4 loading
 ├── scripts/
-│   ├── start.sh                       # One-command container startup
+│   ├── start.sh                       # One-command container startup (Option B)
 │   ├── stop.sh                        # One-command container stop
-│   ├── startup.sh                     # In-container startup (upgrades transformers)
+│   ├── startup.sh                     # In-container startup script
 │   ├── benchmark.sh                   # Reproduce our 45 tok/s benchmark
 │   ├── download-model.sh              # Pre-download the model
 │   └── install-service.sh             # Install systemd auto-start service
@@ -270,6 +374,8 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 │   ├── ARCHITECTURE.md                # Deep dive into DGX Spark + vLLM
 │   ├── TROUBLESHOOTING.md             # Common issues and fixes
 │   └── MODEL_COMPARISON.md            # Full comparison matrix
+├── openclaw/
+│   └── openclaw-config-snippet.json   # OpenClaw integration config
 └── LICENSE
 ```
 
@@ -288,11 +394,17 @@ This will:
 
 ## Environment Variables
 
-These are baked into the `cu130-nightly` image and should not need changing:
+These are baked into the AEON-7 pre-built image and should not need changing:
 
 ```bash
 TORCH_CUDA_ARCH_LIST="8.7 8.9 9.0 10.0+PTX 12.0 12.1"
 CUDA_VERSION=13.0.1
+```
+
+Additional environment variable for optimal performance:
+
+```bash
+VLLM_NVFP4_GEMM_BACKEND=marlin  # Uses Marlin W4A16 kernel for dense GEMM (faster on memory-bandwidth-bound decode)
 ```
 
 ## Troubleshooting

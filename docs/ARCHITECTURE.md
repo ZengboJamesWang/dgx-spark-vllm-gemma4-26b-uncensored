@@ -24,7 +24,7 @@ However, FP4 only works with **CUDA 13.0+** and requires kernels specifically co
 
 ```
 ┌─────────────────────────────────────┐
-│  vLLM v0.19+ (cu130-nightly)       │  ← Blackwell FP4 kernels
+│  vLLM v0.19+ (AEON-7 pre-built)   │  ← Blackwell FP4 kernels
 │  ├── FlashInfer Cutlass NVFP4      │  ← Optimized GEMM
 │  ├── CUDA Graphs                   │  ← Avoid Python overhead
 │  ├── Chunked Prefill               │  ← Better scheduling
