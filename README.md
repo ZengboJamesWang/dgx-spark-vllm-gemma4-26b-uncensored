@@ -70,6 +70,11 @@ This downloads the ~15GB model to `~/.cache/huggingface/gemma-4-26B-it-uncensore
 
 ### 4. One-Command Start
 
+Pick the container image that fits your setup:
+
+#### Option A — Official vLLM image (default)
+Uses the upstream `vllm/vllm-openai` image (pinned to a working digest). Good if you prefer official images or are on a non-DGX-Spark Blackwell GPU.
+
 ```bash
 bash scripts/start.sh
 ```
@@ -79,7 +84,16 @@ bash scripts/start.sh
 2. Loads weights (~100s)
 3. Compiles CUDA graphs (~55s with caching)
 
-To stop:
+#### Option B — AEON-7 pre-built image (DGX Spark optimized)
+Uses AEON-7's custom image compiled specifically for DGX Spark (SM 12.1). It already contains `transformers 5.5.0`, so startup is slightly faster.
+
+```bash
+bash scripts/start-aeon.sh
+```
+
+> This image is specifically built for SM 12.1. It may not work on other GPU architectures.
+
+To stop (works with either option):
 
 ```bash
 bash scripts/stop.sh
@@ -194,7 +208,9 @@ That's it! OpenClaw will now use your local uncensored Gemma-4 model with **262K
 
 ## Manual Docker Run
 
-If you prefer to run Docker manually instead of `scripts/start.sh`:
+If you prefer to run Docker manually instead of the helper scripts:
+
+### Option A — Official vLLM image
 
 ```bash
 mkdir -p ~/.cache/huggingface
@@ -227,6 +243,38 @@ docker run -d --name vllm-gemma4-26b \
 ```
 
 The `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
+
+### Option B — AEON-7 pre-built image
+
+```bash
+mkdir -p ~/.cache/huggingface
+
+docker run -d --name vllm-gemma4-26b \
+  --gpus all \
+  --ipc=host \
+  -p 8000:8000 \
+  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
+  ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest \
+  vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
+    --served-model-name gemma-4-26b-uncensored-vllm \
+    --tensor-parallel-size 1 \
+    --max-model-len 262000 \
+    --max-num-seqs 128 \
+    --gpu-memory-utilization 0.8 \
+    --trust-remote-code \
+    --host 0.0.0.0 --port 8000 \
+    --dtype auto \
+    --kv-cache-dtype fp8 \
+    --enable-chunked-prefill \
+    --max-num-batched-tokens 131072 \
+    --load-format safetensors \
+    --enable-prefix-caching \
+    --enable-auto-tool-choice \
+    --tool-call-parser gemma4 \
+    --reasoning-parser gemma4
+```
 
 ## Auto-Start on Boot (Systemd)
 
@@ -360,12 +408,14 @@ dgx-spark-vllm-gemma4-26b-uncensored/
 ├── patches/
 │   └── gemma4_patched.py              # Required patch for AEON-7 NVFP4 loading
 ├── scripts/
-│   ├── start.sh                       # One-command container startup (Option B)
+│   ├── start.sh                       # One-command container startup (AEON-7)
 │   ├── stop.sh                        # One-command container stop
 │   ├── startup.sh                     # In-container startup script
 │   ├── benchmark.sh                   # Reproduce our 45 tok/s benchmark
 │   ├── download-model.sh              # Pre-download the model
-│   └── install-service.sh             # Install systemd auto-start service
+│   ├── install-service.sh             # Install systemd auto-start service
+│   ├── configure-openclaw.sh          # Configure OpenClaw integration
+│   └── configure-openclaw.py          # OpenClaw config helper (Python)
 ├── systemd/
 │   └── vllm-gemma4-26b.service        # Systemd user service file
 ├── benchmarks/

@@ -24,6 +24,8 @@ but Transformers does not recognize this architecture.
 
 **Solution**: Make sure you're using the AEON-7 pre-built image (`ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest`) which already includes transformers 5.5.0. Do not use the generic `vllm/vllm-openai` image which requires transformers <5.0.
 
+> **Note**: If you used `scripts/start-aeon.sh` (AEON-7 pre-built image), this error should not occur because that image already ships with `transformers 5.5.0`.
+
 ### "Cannot find model"
 
 **Symptom**:
