@@ -6,7 +6,7 @@ set -e
 
 echo "Starting vLLM server with AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4..."
 exec vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
-  --served-model-name gemma-4-26b-uncensored-vllm \
+  --served-model-name gemma4-26b-uncensored \
   --tensor-parallel-size 1 \
   --quantization compressed-tensors \
   --load-format safetensors \

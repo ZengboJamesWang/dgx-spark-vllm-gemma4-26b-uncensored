@@ -69,7 +69,7 @@ docker run -d --name "$CONTAINER_NAME" \
   -v "$PATCH_FILE:$GEMMA4_PY" \
   "$IMAGE" \
   vllm serve "$MODEL_PATH" \
-    --served-model-name gemma-4-26b-uncensored-vllm \
+    --served-model-name gemma4-26b-uncensored \
     --tensor-parallel-size 1 \
     --max-model-len 262000 \
     --max-num-seqs 128 \
@@ -100,7 +100,7 @@ for i in {1..60}; do
         echo "Test it:"
         echo "  curl http://localhost:8000/v1/chat/completions \\"
         echo "    -H 'Content-Type: application/json' \\"
-        echo "    -d '{\"model\":\"gemma-4-26b-uncensored-vllm\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
+        echo "    -d '{\"model\":\"gemma4-26b-uncensored\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
         echo ""
         echo "View logs: docker logs -f $CONTAINER_NAME"
         echo "Stop: docker stop $CONTAINER_NAME"

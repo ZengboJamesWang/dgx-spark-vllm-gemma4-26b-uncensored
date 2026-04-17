@@ -98,7 +98,7 @@ bash scripts/stop.sh
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gemma-4-26b-uncensored-vllm",
+    "model": "gemma4-26b-uncensored",
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 200
   }'
@@ -145,8 +145,8 @@ If you prefer to configure manually, copy the configuration from [`openclaw/open
   "api": "openai-completions",
   "models": [
     {
-      "id": "gemma-4-26b-uncensored-vllm",
-      "name": "gemma-4-26b-uncensored-vllm",
+      "id": "gemma4-26b-uncensored",
+      "name": "gemma4-26b-uncensored",
       "reasoning": false,
       "input": ["text"],
       "cost": {
@@ -174,7 +174,7 @@ If you prefer to configure manually, copy the configuration from [`openclaw/open
 
 ```json
 "model": {
-  "primary": "vllm/gemma-4-26b-uncensored-vllm",
+  "primary": "vllm/gemma4-26b-uncensored",
   "fallbacks": [
     "minimax/MiniMax-M2.5",
     "ollama/gemma4:26b"
@@ -185,7 +185,7 @@ If you prefer to configure manually, copy the configuration from [`openclaw/open
 **4. Add model alias** (inside `agents.defaults.models`):
 
 ```json
-"vllm/gemma-4-26b-uncensored-vllm": {
+"vllm/gemma4-26b-uncensored": {
   "alias": "gemma4-26b-vllm"
 }
 ```
@@ -214,7 +214,7 @@ docker run -d --name vllm-gemma4-26b \
   -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
   ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest \
   vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
-    --served-model-name gemma-4-26b-uncensored-vllm \
+    --served-model-name gemma4-26b-uncensored \
     --tensor-parallel-size 1 \
     --max-model-len 262000 \
     --max-num-seqs 128 \
@@ -294,7 +294,7 @@ In the Open WebUI settings:
    - **API Key**: `sk-1234567890` (any dummy key works; vLLM doesn't validate it)
 3. Click **Save**
 4. Go to **Admin Panel → Settings → Models**
-5. Verify `gemma-4-26b-uncensored-vllm` appears in the model list
+5. Verify `gemma4-26b-uncensored` appears in the model list
 6. Select it from the model dropdown in the chat page
 
 ### Open WebUI in Docker

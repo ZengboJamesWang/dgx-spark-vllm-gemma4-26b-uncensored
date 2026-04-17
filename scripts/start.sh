@@ -108,7 +108,7 @@ for i in {1..60}; do
         echo "Test it:"
         echo "  curl http://localhost:8000/v1/chat/completions \\"
         echo "    -H 'Content-Type: application/json' \\"
-        echo "    -d '{\"model\":\"gemma-4-26b-uncensored-vllm\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
+        echo "    -d '{\"model\":\"gemma4-26b-uncensored\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
         echo ""
         echo "View logs: docker logs -f $CONTAINER_NAME"
         echo "Stop: docker stop $CONTAINER_NAME"

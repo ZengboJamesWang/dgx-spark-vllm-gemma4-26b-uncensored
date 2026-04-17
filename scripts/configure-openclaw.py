@@ -28,8 +28,8 @@ VLLM_PROVIDER = {
     "api": "openai-completions",
     "models": [
         {
-            "id": "gemma-4-26b-uncensored-vllm",
-            "name": "gemma-4-26b-uncensored-vllm",
+            "id": "gemma4-26b-uncensored",
+            "name": "gemma4-26b-uncensored",
             "reasoning": False,
             "input": ["text"],
             "cost": {
@@ -102,7 +102,7 @@ def add_model_alias(config):
     if "models" not in config["agents"]["defaults"]:
         config["agents"]["defaults"]["models"] = {}
     
-    config["agents"]["defaults"]["models"]["vllm/gemma-4-26b-uncensored-vllm"] = VLLM_MODEL_ALIAS
+    config["agents"]["defaults"]["models"]["vllm/gemma4-26b-uncensored"] = VLLM_MODEL_ALIAS
     print("✅ Added model alias 'gemma4-26b-vllm'")
 
 def set_primary_model(config):
@@ -113,7 +113,7 @@ def set_primary_model(config):
         config["agents"]["defaults"] = {}
     
     config["agents"]["defaults"]["model"] = {
-        "primary": "vllm/gemma-4-26b-uncensored-vllm",
+        "primary": "vllm/gemma4-26b-uncensored",
         "fallbacks": [
             "minimax/MiniMax-M2.5",
             "ollama/gemma4:26b"

@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
 API_URL="http://localhost:8000/v1/chat/completions"
-MODEL="gemma-4-26b-uncensored-vllm"
+MODEL="gemma4-26b-uncensored"
 
 echo "=================================================="
 echo "DGX Spark vLLM Benchmark"
