@@ -9,7 +9,7 @@
 
 ## Overview
 
-This repository documents how to run **fast, uncensored large language models** on the **NVIDIA DGX Spark** (GB10 Blackwell GPU) using vLLM. We achieved **45+ tokens/second** with the [AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) model — a significant performance win over both Ollama and slower 31B quantized variants.
+This repository documents how to run **fast, uncensored large language models** on the **NVIDIA DGX Spark** (GB10 Blackwell GPU) using vLLM. We achieved **45+ tokens/second** with the [AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) model — a significant performance win over both Ollama and slower 31B quantized variants. We use `--gpu-memory-utilization 0.60` and `--max-model-len 262000`, which differ from the HuggingFace card defaults (`0.85` and `65536`) — see [Recommended Settings](#recommended-settings) for why.
 
 ### What Makes This Setup Special
 
