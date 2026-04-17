@@ -53,9 +53,15 @@ fi
 # Ensure HuggingFace cache directory exists
 mkdir -p ~/.cache/huggingface
 
-echo ""
-echo "Pulling image: $IMAGE"
-docker pull "$IMAGE"
+# Only pull image if not present locally (avoids DNS issues during boot)
+if ! docker image inspect "$IMAGE" > /dev/null 2>&1; then
+    echo ""
+    echo "Pulling image: $IMAGE"
+    docker pull "$IMAGE"
+else
+    echo ""
+    echo "Using local image: $IMAGE"
+fi
 
 echo ""
 echo "Starting vLLM container..."
