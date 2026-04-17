@@ -23,9 +23,9 @@ This repository documents how to run **fast, uncensored large language models** 
 
 ## Performance
 
-| Setup | Model | Avg Speed | Memory | Notes |
+| Setup | Model | Avg Speed | GPU Memory | Notes |
 |-------|-------|-----------|---------|-------|
-| **This Setup** ✅ | Gemma-4-26B Uncensored NVFP4 | **45.26 tok/s** | ~16.3 GB | Fastest, uncensored |
+| **This Setup** ✅ | Gemma-4-26B Uncensored NVFP4 | **45.26 tok/s** | ~47 GB | Fastest, uncensored, 262K context |
 | vLLM (LilaRest) | Gemma-4-31B NVFP4 | 9.16 tok/s | ~18.5 GB | Too slow on DGX Spark |
 | Ollama | gemma4:31b | 8.05 tok/s | ~19 GB | Baseline |
 
