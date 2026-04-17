@@ -17,6 +17,7 @@ This repository documents how to run **fast, uncensored large language models** 
 - **NVFP4 quantization**: Leverages Blackwell's native FP4 tensor cores for 2-5× speedup
 - **FP8 KV cache**: Halves memory usage without accuracy loss
 - **CUDA graphs + chunked prefill**: Additional 20-40% throughput gains
+- **Memory-optimized settings**: Tuned `--gpu-memory-utilization 0.60` with full `--max-model-len 262000` — achieves same 45+ tok/s while using ~47GB GPU memory instead of ~100GB (see [Recommended Settings](#recommended-settings))
 - **Auto-start on boot**: Includes systemd user service for persistence after reboot
 - **OpenClaw ready**: Pre-configured integration with [OpenClaw](https://openclaw.ai) agents
 
