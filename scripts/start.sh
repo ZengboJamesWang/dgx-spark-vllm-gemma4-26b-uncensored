@@ -73,7 +73,6 @@ docker run -d --name "$CONTAINER_NAME" \
   --gpus all \
   --ipc=host \
   -p 8000:8000 \
-  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$STARTUP_SCRIPT:/startup.sh" \
   -v "$PATCH_FILE:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \

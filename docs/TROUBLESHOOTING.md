@@ -233,9 +233,9 @@ torch.cuda.OutOfMemoryError: CUDA out of memory
 
 **Solutions**:
 
-1. Reduce `--gpu-memory-utilization`:
+1. Reduce `--gpu-memory-utilization` (default is 0.60, which is optimal for most users):
    ```bash
-   --gpu-memory-utilization 0.50  # Instead of 0.60
+   --gpu-memory-utilization 0.50  # Only if you still get OOM with 0.60
    ```
 
 2. Reduce `--max-model-len`:

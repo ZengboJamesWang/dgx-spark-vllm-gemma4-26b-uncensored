@@ -10,7 +10,7 @@ exec vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
   --tensor-parallel-size 1 \
   --max-model-len 262000 \
   --max-num-seqs 128 \
-  --gpu-memory-utilization 0.8 \
+  --gpu-memory-utilization 0.60 \
   --trust-remote-code \
   --host 0.0.0.0 --port 8000 \
   --dtype auto \

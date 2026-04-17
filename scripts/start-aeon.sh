@@ -61,7 +61,6 @@ docker run -d --name "$CONTAINER_NAME" \
   --gpus all \
   --ipc=host \
   -p 8000:8000 \
-  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$PATCH_FILE:$GEMMA4_PY" \
   "$IMAGE" \
@@ -70,7 +69,7 @@ docker run -d --name "$CONTAINER_NAME" \
     --tensor-parallel-size 1 \
     --max-model-len 262000 \
     --max-num-seqs 128 \
-    --gpu-memory-utilization 0.8 \
+    --gpu-memory-utilization 0.60 \
     --trust-remote-code \
     --host 0.0.0.0 \
     --port 8000 \

@@ -203,7 +203,6 @@ docker run -d --name vllm-gemma4-26b \
   --gpus all \
   --ipc=host \
   -p 8000:8000 \
-  -e VLLM_NVFP4_GEMM_BACKEND=marlin \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
   ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest \
@@ -212,7 +211,7 @@ docker run -d --name vllm-gemma4-26b \
     --tensor-parallel-size 1 \
     --max-model-len 262000 \
     --max-num-seqs 128 \
-    --gpu-memory-utilization 0.8 \
+    --gpu-memory-utilization 0.60 \
     --trust-remote-code \
     --host 0.0.0.0 --port 8000 \
     --dtype auto \
@@ -227,6 +226,8 @@ docker run -d --name vllm-gemma4-26b \
 ```
 
 The `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
+
+> **Note on settings**: The command above uses `--gpu-memory-utilization 0.60` and `--max-model-len 262000`, which differ from the [HuggingFace model card](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) defaults (`0.85` and `65536`). After extensive testing on DGX Spark, we found `0.60` with full `262000` context provides the optimal balance — using ~47GB GPU memory (vs ~100GB with the card's defaults) while maintaining the full context window and same 45+ tok/s performance.
 
 ## Auto-Start on Boot (Systemd)
 
@@ -403,11 +404,17 @@ TORCH_CUDA_ARCH_LIST="8.7 8.9 9.0 10.0+PTX 12.0 12.1"
 CUDA_VERSION=13.0.1
 ```
 
-Additional environment variable for optimal performance:
+## Recommended Settings
 
-```bash
-VLLM_NVFP4_GEMM_BACKEND=marlin  # Uses Marlin W4A16 kernel for dense GEMM (faster on memory-bandwidth-bound decode)
-```
+After extensive testing, we found the **optimal balance of performance and memory usage**:
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `--gpu-memory-utilization` | **0.60** | Sweet spot: ~47GB usage with full 262K context. Higher values (0.65-0.85) use 30-55GB more memory without benefit. |
+| `--max-model-len` | **262000** | Full context window. No need to reduce — 0.60 utilization handles it efficiently. |
+| `--max-num-batched-tokens` | **131072** | Optimal batch size for throughput. |
+
+**Do NOT set** `VLLM_NVFP4_GEMM_BACKEND=marlin` — let vLLM auto-detect native FP4 kernels for best performance.
 
 ## Troubleshooting
 
