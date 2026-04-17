@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# ⚠️  DEPRECATED: Use scripts/start.sh instead
+# This script is kept for reference but start.sh is the recommended approach.
+# It includes better error handling, port checks, and disk space validation.
+#
 # Alternative startup using AEON-7's pre-built DGX Spark image
 # This image ships with vLLM 0.19.1rc1 + transformers 5.5.0 + CUDA 13.0
 # and is compiled specifically for SM 12.1 (DGX Spark / GB10).

@@ -50,9 +50,10 @@ Average: 45.26 tok/s (σ = 0.07)
 ### 1. Prerequisites
 
 - NVIDIA DGX Spark or any **Blackwell SM12.1+** GPU (GB10, RTX 5090, etc.)
+- **NVIDIA Driver 580+** (required for Blackwell GB10 support)
 - Docker with NVIDIA Container Toolkit
-- At least 20GB free disk space for the model
-- `python3` and `curl` available on the host
+- At least **30GB free disk space** (model ~15GB + Docker image ~10GB + cache)
+- `python3`, `curl`, and `lsof` available on the host
 
 ### 2. Clone this repo
 
@@ -68,6 +69,11 @@ bash scripts/download-model.sh
 ```
 
 This downloads the ~15GB model to `~/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4`.
+
+> **Note**: Set `HF_TOKEN` environment variable if you encounter HuggingFace rate limits:
+> ```bash
+> export HF_TOKEN='your_token_here'
+> ```
 
 ### 4. One-Command Start
 

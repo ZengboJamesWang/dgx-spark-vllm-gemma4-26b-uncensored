@@ -43,6 +43,21 @@ if [ ! -f "$STARTUP_SCRIPT" ]; then
     exit 1
 fi
 
+# Check if port 8000 is already in use
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "⚠️  Port 8000 is already in use."
+    echo "   Stop the existing service first or change the port."
+    exit 1
+fi
+
+# Check disk space (need at least 30GB free)
+AVAILABLE_GB=$(df -BG "$HOME" | awk 'NR==2 {print $4}' | sed 's/G//')
+if [ "$AVAILABLE_GB" -lt 30 ]; then
+    echo "⚠️  Warning: Only ${AVAILABLE_GB}GB disk space available."
+    echo "   Model + Docker image need ~30-40GB. Free up space first."
+    exit 1
+fi
+
 # Stop existing container
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo "Stopping existing container: $CONTAINER_NAME"
@@ -70,6 +85,7 @@ echo "This may take 5-10 minutes on first run for model download + CUDA graph co
 echo ""
 
 docker run -d --name "$CONTAINER_NAME" \
+  --restart unless-stopped \
   --gpus all \
   --ipc=host \
   -p 8000:8000 \
