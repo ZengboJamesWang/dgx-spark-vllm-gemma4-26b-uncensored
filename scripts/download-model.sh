@@ -20,8 +20,8 @@ if [ "$AVAILABLE_GB" -lt 20 ]; then
     exit 1
 fi
 
-# Skip if already downloaded
-if [ -f "$LOCAL_DIR/model.safetensors" ]; then
+# Skip if already downloaded (check config.json since models may be sharded)
+if [ -f "$LOCAL_DIR/config.json" ]; then
     echo ""
     echo "✅ Model already exists at: $LOCAL_DIR"
     echo "   Skipping download. Delete the folder to re-download."

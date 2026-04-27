@@ -43,9 +43,9 @@ if [ ! -f "$STARTUP_SCRIPT" ]; then
     exit 1
 fi
 
-# Check if port 8000 is already in use
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo "⚠️  Port 8000 is already in use."
+# Check if port 8001 is already in use
+if lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "⚠️  Port 8001 is already in use."
     echo "   Stop the existing service first or change the port."
     exit 1
 fi
@@ -56,6 +56,15 @@ if [ "$AVAILABLE_GB" -lt 30 ]; then
     echo "⚠️  Warning: Only ${AVAILABLE_GB}GB disk space available."
     echo "   Model + Docker image need ~30-40GB. Free up space first."
     exit 1
+fi
+
+# Check if model exists locally, download if not
+LOCAL_MODEL_DIR="${HOME}/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4"
+if [ ! -f "$LOCAL_MODEL_DIR/config.json" ]; then
+    echo ""
+    echo "📦 Model not found at: $LOCAL_MODEL_DIR"
+    echo "   Downloading now (~15GB)..."
+    bash "$SCRIPT_DIR/download-model.sh"
 fi
 
 # Stop existing container
@@ -88,7 +97,7 @@ docker run -d --name "$CONTAINER_NAME" \
   --restart unless-stopped \
   --gpus all \
   --ipc=host \
-  -p 8000:8000 \
+  -p 8001:8001 \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$STARTUP_SCRIPT:/startup.sh" \
   -v "$PATCH_FILE:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
@@ -101,12 +110,12 @@ echo ""
 echo "⏳ Waiting for server to be ready (this can take 5-10 min on first run)..."
 
 for i in {1..60}; do
-    if curl -s http://localhost:8000/v1/models > /dev/null 2>&1; then
+    if curl -s http://localhost:8001/v1/models > /dev/null 2>&1; then
         echo ""
         echo "✅ Server is ready!"
         echo ""
         echo "Test it:"
-        echo "  curl http://localhost:8000/v1/chat/completions \\"
+        echo "  curl http://localhost:8001/v1/chat/completions \\"
         echo "    -H 'Content-Type: application/json' \\"
         echo "    -d '{\"model\":\"gemma4-26b-uncensored\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
         echo ""

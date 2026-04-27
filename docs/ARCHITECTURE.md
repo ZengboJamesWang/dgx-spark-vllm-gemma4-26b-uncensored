@@ -174,7 +174,7 @@ Watch these metrics during inference:
 nvidia-smi dmon -s u
 
 # vLLM metrics (if enabled)
-curl http://localhost:8000/metrics
+curl http://localhost:8001/metrics
 ```
 
 Expected:

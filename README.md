@@ -95,7 +95,7 @@ bash scripts/stop.sh
 ### 5. Test It
 
 ```bash
-curl http://localhost:8000/v1/chat/completions \
+curl http://localhost:8001/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gemma4-26b-uncensored",
@@ -140,7 +140,7 @@ If you prefer to configure manually, copy the configuration from [`openclaw/open
 
 ```json
 "vllm": {
-  "baseUrl": "http://localhost:8000/v1",
+  "baseUrl": "http://localhost:8001/v1",
   "apiKey": "vllm-local",
   "api": "openai-completions",
   "models": [
@@ -209,7 +209,7 @@ mkdir -p ~/.cache/huggingface
 docker run -d --name vllm-gemma4-26b \
   --gpus all \
   --ipc=host \
-  -p 8000:8000 \
+  -p 8001:8001 \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$(pwd)/patches/gemma4_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/gemma4.py" \
   ghcr.io/aeon-7/vllm-spark-gemma4-nvfp4:latest \
@@ -220,7 +220,7 @@ docker run -d --name vllm-gemma4-26b \
     --max-num-seqs 128 \
     --gpu-memory-utilization 0.60 \
     --trust-remote-code \
-    --host 0.0.0.0 --port 8000 \
+    --host 0.0.0.0 --port 8001 \
     --dtype auto \
     --kv-cache-dtype fp8 \
     --enable-chunked-prefill \
@@ -279,7 +279,7 @@ If you installed Open WebUI with **pip/pipx on the host**, it shares the same ne
 
 ```bash
 # Set the OpenAI-compatible API base to your local vLLM
-export OPENAI_API_BASE_URL="http://localhost:8000/v1"
+export OPENAI_API_BASE_URL="http://localhost:8001/v1"
 
 # Start Open WebUI
 open-webui serve
@@ -290,7 +290,7 @@ Then open `http://localhost:8080` in your browser.
 In the Open WebUI settings:
 1. Go to **Admin Panel → Settings → Connections**
 2. Under **OpenAI API**, set:
-   - **API URL**: `http://localhost:8000/v1`
+   - **API URL**: `http://localhost:8001/v1`
    - **API Key**: `sk-1234567890` (any dummy key works; vLLM doesn't validate it)
 3. Click **Save**
 4. Go to **Admin Panel → Settings → Models**
@@ -304,10 +304,10 @@ If Open WebUI runs inside a Docker container, **`localhost` / `127.0.0.1` will n
 Use the host-guest DNS name instead:
 
 ```
-http://host.docker.internal:8000/v1
+http://host.docker.internal:8001/v1
 ```
 
-> **Note**: `host.docker.internal` works on Docker Desktop and Docker Engine 20.10+ on Linux. If it doesn't resolve on your system, start the Open WebUI container with `--network=host` (Linux only) or use the host's LAN IP (e.g., `http://192.168.1.42:8000/v1`).
+> **Note**: `host.docker.internal` works on Docker Desktop and Docker Engine 20.10+ on Linux. If it doesn't resolve on your system, start the Open WebUI container with `--network=host` (Linux only) or use the host's LAN IP (e.g., `http://192.168.1.42:8001/v1`).
 
 ## Why This Works on DGX Spark
 

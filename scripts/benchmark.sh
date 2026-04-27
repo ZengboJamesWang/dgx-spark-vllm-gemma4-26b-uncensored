@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-API_URL="http://localhost:8000/v1/chat/completions"
+API_URL="http://localhost:8001/v1/chat/completions"
 MODEL="gemma4-26b-uncensored"
 
 echo "=================================================="
@@ -17,7 +17,7 @@ echo "Hardware: NVIDIA DGX Spark (GB10 Blackwell)"
 echo "=================================================="
 
 # Check if server is running
-if ! curl -s http://localhost:8000/v1/models > /dev/null 2>&1; then
+if ! curl -s http://localhost:8001/v1/models > /dev/null 2>&1; then
     echo "❌ Server not running! Start it first with: bash scripts/start.sh"
     exit 1
 fi

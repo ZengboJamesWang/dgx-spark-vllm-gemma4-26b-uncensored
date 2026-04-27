@@ -64,7 +64,7 @@ echo ""
 docker run -d --name "$CONTAINER_NAME" \
   --gpus all \
   --ipc=host \
-  -p 8000:8000 \
+  -p 8001:8001 \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
   -v "$PATCH_FILE:$GEMMA4_PY" \
   "$IMAGE" \
@@ -76,7 +76,7 @@ docker run -d --name "$CONTAINER_NAME" \
     --gpu-memory-utilization 0.60 \
     --trust-remote-code \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port 8001 \
     --dtype auto \
     --kv-cache-dtype fp8 \
     --enable-chunked-prefill \
@@ -93,12 +93,12 @@ echo ""
 echo "⏳ Waiting for server to be ready (this can take 5-10 min on first run)..."
 
 for i in {1..60}; do
-    if curl -s http://localhost:8000/v1/models > /dev/null 2>&1; then
+    if curl -s http://localhost:8001/v1/models > /dev/null 2>&1; then
         echo ""
         echo "✅ Server is ready!"
         echo ""
         echo "Test it:"
-        echo "  curl http://localhost:8000/v1/chat/completions \\"
+        echo "  curl http://localhost:8001/v1/chat/completions \\"
         echo "    -H 'Content-Type: application/json' \\"
         echo "    -d '{\"model\":\"gemma4-26b-uncensored\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":100}'"
         echo ""

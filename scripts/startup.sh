@@ -12,7 +12,7 @@ exec vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
   --load-format safetensors \
   --max-model-len 262000 \
   --max-num-seqs 128 \
-  --gpu-memory-utilization 0.60 \
+  --gpu-memory-utilization 0.45 \
   --kv-cache-dtype fp8 \
   --enable-chunked-prefill \
   --max-num-batched-tokens 131072 \
@@ -21,5 +21,5 @@ exec vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
   --tool-call-parser gemma4 \
   --reasoning-parser gemma4 \
   --trust-remote-code \
-  --host 0.0.0.0 --port 8000 \
+  --host 0.0.0.0 --port 8001 \
   --dtype auto

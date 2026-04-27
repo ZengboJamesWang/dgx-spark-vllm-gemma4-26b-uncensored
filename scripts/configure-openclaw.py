@@ -23,7 +23,7 @@ CONFIG_PATH = Path.home() / ".openclaw" / "openclaw.json"
 BACKUP_DIR = Path.home() / ".openclaw" / "backups"
 
 VLLM_PROVIDER = {
-    "baseUrl": "http://localhost:8000/v1",
+    "baseUrl": "http://localhost:8001/v1",
     "apiKey": "vllm-local",
     "api": "openai-completions",
     "models": [

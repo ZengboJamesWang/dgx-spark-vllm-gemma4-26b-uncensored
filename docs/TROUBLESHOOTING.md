@@ -80,7 +80,7 @@ bash scripts/download-model.sh
 
 **Check**:
 ```bash
-curl http://localhost:8000/v1/models | python3 -m json.tool
+curl http://localhost:8001/v1/models | python3 -m json.tool
 ```
 
 **Fixes**:
@@ -136,7 +136,7 @@ docker logs vllm-gemma4-26b
 ```
 
 **Common Causes**:
-1. Port 8000 already in use
+1. Port 8001 already in use
 2. Out of disk space
 3. Permission denied on cache directory
 4. Missing `gemma4_patched.py` mount
@@ -144,7 +144,7 @@ docker logs vllm-gemma4-26b
 **Solution**:
 ```bash
 # Check port usage
-sudo lsof -i :8000
+sudo lsof -i :8001
 
 # Check disk space
 df -h
@@ -199,7 +199,7 @@ sudo loginctl enable-linger $USER
 **Solution**:
 ```bash
 # Verify vLLM is up
-curl http://localhost:8000/v1/models
+curl http://localhost:8001/v1/models
 
 # If not, start it
 bash scripts/start.sh
@@ -209,17 +209,17 @@ bash scripts/start.sh
 
 **Solution**: Use the host-resolver DNS name inside the container:
 ```
-http://host.docker.internal:8000/v1
+http://host.docker.internal:8001/v1
 ```
 If `host.docker.internal` doesn't work on your Linux system, use one of these alternatives:
-- Start the Open WebUI container with `--network=host` (Linux only), then `http://localhost:8000/v1` works.
-- Use the host's LAN IP address, e.g. `http://192.168.1.42:8000/v1`.
+- Start the Open WebUI container with `--network=host` (Linux only), then `http://localhost:8001/v1` works.
+- Use the host's LAN IP address, e.g. `http://192.168.1.42:8001/v1`.
 
 **Cause 3**: Wrong API path.
 
 **Solution**: Ensure the API base URL ends with `/v1`:
 ```
-http://localhost:8000/v1
+http://localhost:8001/v1
 ```
 
 ## Memory Issues
