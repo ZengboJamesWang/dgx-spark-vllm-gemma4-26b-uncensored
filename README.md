@@ -9,7 +9,7 @@
 
 ## Overview
 
-This repository documents how to run **fast, uncensored large language models** on the **NVIDIA DGX Spark** (GB10 Blackwell GPU) using vLLM. We achieved **45+ tokens/second** with the [AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) model — a significant performance win over both Ollama and slower 31B quantized variants. We use `--gpu-memory-utilization 0.60` and `--max-model-len 262000`, which differ from the HuggingFace card defaults (`0.85` and `65536`) — see [Recommended Settings](#recommended-settings) for why.
+This repository documents how to run **fast, uncensored large language models** on the **NVIDIA DGX Spark** (GB10 Blackwell GPU) using vLLM. We achieved **45+ tokens/second** with the [AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) model — a significant performance win over both Ollama and slower 31B quantized variants. We use `--gpu-memory-utilization 0.45`, `--max-model-len 262000`, and `--max-num-seqs 16`, which differ from the HuggingFace card defaults (`0.85`, `65536`, and `256`) — see [Recommended Settings](#recommended-settings) for why.
 
 ### What Makes This Setup Special
 
@@ -17,7 +17,7 @@ This repository documents how to run **fast, uncensored large language models** 
 - **NVFP4 quantization**: Leverages Blackwell's native FP4 tensor cores for 2-5× speedup
 - **FP8 KV cache**: Halves memory usage without accuracy loss
 - **CUDA graphs + chunked prefill**: Additional 20-40% throughput gains
-- **Memory-optimized settings**: Tuned `--gpu-memory-utilization 0.60` with full `--max-model-len 262000` — achieves same 45+ tok/s while using ~47GB GPU memory instead of ~100GB (see [Recommended Settings](#recommended-settings))
+- **Memory-optimized settings**: Tuned `--gpu-memory-utilization 0.45` with full `--max-model-len 262000` and `--max-num-seqs 16` — achieves same 45+ tok/s while using ~30-35GB GPU memory instead of ~100GB (see [Recommended Settings](#recommended-settings))
 - **Auto-start on boot**: Includes systemd user service for persistence after reboot
 - **OpenClaw ready**: Pre-configured integration with [OpenClaw](https://openclaw.ai) agents
 
@@ -217,8 +217,8 @@ docker run -d --name vllm-gemma4-26b \
     --served-model-name gemma4-26b-uncensored \
     --tensor-parallel-size 1 \
     --max-model-len 262000 \
-    --max-num-seqs 128 \
-    --gpu-memory-utilization 0.60 \
+    --max-num-seqs 16 \
+    --gpu-memory-utilization 0.45 \
     --trust-remote-code \
     --host 0.0.0.0 --port 8001 \
     --dtype auto \
@@ -234,7 +234,7 @@ docker run -d --name vllm-gemma4-26b \
 
 The `gemma4_patched.py` mount is **required** for the AEON-7 model to load correctly with `compressed-tensors` NVFP4.
 
-> **Note on settings**: The command above uses `--gpu-memory-utilization 0.60` and `--max-model-len 262000`, which differ from the [HuggingFace model card](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) defaults (`0.85` and `65536`). After extensive testing on DGX Spark, we found `0.60` with full `262000` context provides the optimal balance — using ~47GB GPU memory (vs ~100GB with the card's defaults) while maintaining the full context window and same 45+ tok/s performance.
+> **Note on settings**: The command above uses `--gpu-memory-utilization 0.45`, `--max-model-len 262000`, and `--max-num-seqs 16`, which differ from the [HuggingFace model card](https://huggingface.co/AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4) defaults (`0.85`, `65536`, and `256`). After extensive testing on DGX Spark, we found `0.45` with full `262000` context and `16` concurrent sequences provides the optimal balance — using ~30-35GB GPU memory (vs ~100GB with the card's defaults) while maintaining the full context window and same 45+ tok/s performance.
 
 ## Auto-Start on Boot (Systemd)
 
@@ -351,7 +351,7 @@ Here is exactly how we arrived at this 45 tok/s configuration:
 - Switched to `AEON-7/Gemma-4-26B-A4B-it-Uncensored-NVFP4`
 - Uses `--quantization compressed-tensors` — the model's native format
 - Added `--enable-chunked-prefill` and `--enable-prefix-caching`
-- Set `--gpu-memory-utilization 0.60` (262K context fits comfortably)
+- Set `--gpu-memory-utilization 0.45` with `--max-num-seqs 16` (262K context fits comfortably)
 - **Result**: **45.26 tok/s** — a **5× improvement** over both alternatives
 
 ### Key Breakthrough
@@ -417,8 +417,9 @@ After extensive testing, we found the **optimal balance of performance and memor
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| `--gpu-memory-utilization` | **0.60** | Sweet spot: ~47GB usage with full 262K context. Higher values (0.65-0.85) use 30-55GB more memory without benefit. |
-| `--max-model-len` | **262000** | Full context window. No need to reduce — 0.60 utilization handles it efficiently. |
+| `--gpu-memory-utilization` | **0.45** | Safe cap: ~57GB budget, actual usage ~30-35GB. Prevents system halts while keeping full 262K context. |
+| `--max-model-len` | **262000** | Full context window. No need to reduce — works perfectly with 0.45 utilization. |
+| `--max-num-seqs` | **16** | Up to 16 concurrent requests. Ideal for OpenClaw agents. Keeps KV cache at ~6GB (vs ~48GB with 128). |
 | `--max-num-batched-tokens` | **131072** | Optimal batch size for throughput. |
 
 **Do NOT set** `VLLM_NVFP4_GEMM_BACKEND=marlin` — let vLLM auto-detect native FP4 kernels for best performance.
