@@ -81,6 +81,10 @@ This downloads the ~15GB model to `~/.cache/huggingface/gemma-4-26B-it-uncensore
 bash scripts/start.sh
 ```
 
+**Current configuration**: `--gpu-memory-utilization 0.45` | `--max-model-len 262000` | **`--max-num-seqs 16`**
+
+> **Why 16 concurrent sequences?** This limits KV cache memory to ~6GB (down from ~48GB with 128), keeping total GPU usage at ~30-35GB. More than enough for OpenClaw agents while preventing system halts.
+
 **Note**: First startup takes ~5-10 minutes while the container:
 1. Downloads the model if not pre-downloaded (~15GB)
 2. Loads weights (~100s)
