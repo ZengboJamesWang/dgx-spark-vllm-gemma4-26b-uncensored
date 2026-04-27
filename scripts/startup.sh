@@ -11,8 +11,8 @@ exec vllm serve /root/.cache/huggingface/gemma-4-26B-it-uncensored-nvfp4 \
   --quantization compressed-tensors \
   --load-format safetensors \
   --max-model-len 262000 \
-  --max-num-seqs 16 \
-  --gpu-memory-utilization 0.45 \
+  --max-num-seqs 8 \
+  --gpu-memory-utilization 0.60 \
   --kv-cache-dtype fp8 \
   --enable-chunked-prefill \
   --max-num-batched-tokens 131072 \
